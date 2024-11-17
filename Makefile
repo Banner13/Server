@@ -1,5 +1,5 @@
 
-CXXFLAGS += -lpthread -Wall -fPIC 
+CXXFLAGS += -g -lpthread -Wall -fPIC 
 
 SRC_LIB = \
 	tcp_server.cpp

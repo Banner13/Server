@@ -84,8 +84,12 @@ int TCPServer::Stop()
     if (m_listen_thread.joinable())
         m_listen_thread.join();
 
-    for (auto it = m_clients.begin(); it != m_clients.end();)
+    for (auto it = m_clients.begin(); it != m_clients.end();) {
+        auto next = std::next(it);
         DelClient(it->first);
+        it = next;
+    }
+
 
     return 0;
 }
@@ -144,6 +148,7 @@ int TCPServer::DelClient(int fd)
     m_clients.erase(fd);
 
     close(fd);
+    printf("disable client %d\n", fd);
 
     return 0;
 }
@@ -174,16 +179,16 @@ int TCPServer::Listen()
     {
         FD_ZERO(&set);
         timeout.tv_sec = 5;
-        timeout.tv_usec = 50000;
+        timeout.tv_usec = 0;
 
         GetListen(set, max_fd);
 
         ret = select(max_fd, &set, NULL, NULL, &timeout);
 
         if (ret < 0) {
-            perror("select error");
+            perror("Listen select error");
         } else if (0 == ret) {
-            printf("timeout\n");
+            printf("Listen timeout\n");
         } else {
 
             for (auto const& it : m_clients) {
@@ -208,25 +213,41 @@ int TCPServer::Monitor()
 {
     struct sockaddr_in cliaddr;
     socklen_t cliaddr_len;
-    int fd;
+    int fd, ret;
+    fd_set set;
+    struct timeval timeout;
 
     listen(m_socket, 0xFF);
 
     while (m_running)
     {
-        fd = accept(m_socket, (struct sockaddr *)&cliaddr, &cliaddr_len);
-        if (fd < 0) {
-            perror("accept failed");
-            return -1;
+        FD_ZERO(&set);
+        timeout.tv_sec = 5;
+        timeout.tv_usec = 0;
+
+        FD_SET(m_socket, &set);
+        ret = select(m_socket+1, &set, NULL, NULL, &timeout);
+
+        if (ret > 0) {
+            fd = accept(m_socket, (struct sockaddr *)&cliaddr, &cliaddr_len);
+            if (fd < 0) {
+                perror("accept failed");
+                return -1;
+            }
+            
+            printf("get accept %d\n", fd);
+            
+            char client_ip[INET_ADDRSTRLEN];
+            inet_ntop(AF_INET, &cliaddr.sin_addr, client_ip, sizeof(client_ip));
+            printf("Connection accepted from %s:%d\n", client_ip, ntohs(cliaddr.sin_port));
+            
+            AddClient(fd, cliaddr);
+        } else if (0 == ret) {
+            printf("Monitor timeout\n");
+            continue;
+        } else {
+            perror("Monitor select error");
         }
-
-        printf("get accept %d\n", fd);
-
-        char client_ip[INET_ADDRSTRLEN];
-        inet_ntop(AF_INET, &cliaddr.sin_addr, client_ip, sizeof(client_ip));
-        printf("Connection accepted from %s:%d\n", client_ip, ntohs(cliaddr.sin_port));
-        
-        AddClient(fd, cliaddr);
     }
 
     return 0;
@@ -237,7 +258,7 @@ int TCPServer::MyServer(int fd)
 {
     char buffer[256];
     int bytes_read = read(fd, buffer, sizeof(buffer));
-    printf("MyServer(%d) get %s\n", fd, buffer);
+    printf("MyServer(%d) get size(%d) %s\n", fd, bytes_read, buffer);
     return 0;
 }
 
