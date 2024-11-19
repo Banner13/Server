@@ -2,14 +2,14 @@
 #include <iostream>
 #include <string>
 
-#include "tcp_server.h"
+#include "test_server.h"
 
 #include <stdio.h>
 
 int main(void)
 {
     std::string userInput;
-    TCPServer server(8088);
+    TestServer server(8088);
 
     server.Init();
     server.Start();

@@ -13,7 +13,7 @@ public:
     virtual int Reboot() = 0;
     virtual int Stop() = 0;
     virtual int DeInit() = 0;
-    
+
 protected:
 	Server() = default;
 };

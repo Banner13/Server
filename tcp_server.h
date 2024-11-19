@@ -16,7 +16,7 @@ public:
     TCPServer(int port);
     ~TCPServer();
 
-	int Init() override final;
+    int Init() override final;
     int Start() override final;
     int Reboot() override final;
     int Stop() override final;
@@ -28,7 +28,7 @@ private:
     bool m_inited;
     bool m_running;
 
-	int m_port;
+    int m_port;
     int m_socket;
 
     std::mutex m_client_mutex;
